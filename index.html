@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PTSC M&C - Financial Dashboard Pro</title>
+  
+  <!-- Thư viện hỗ trợ -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root { --ptsc-blue: #004a99; --ptsc-blue-dark: #002d5f; --ptsc-red: #ed1c24; --ptsc-gray: #f8f9fa; }
+    body { background-color: #f1f4f9; font-family: 'Segoe UI', sans-serif; padding-bottom: 110px; }
+    
+    /* Header & Navigation */
+    .navbar { background: var(--ptsc-blue-dark); border-bottom: 4px solid var(--ptsc-red); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    .logo-text { color: white; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+    .logo-text span { color: var(--ptsc-red); }
+    .btn-team { border: 1px solid rgba(255,255,255,0.3); color: white; font-weight: 600; margin-left: 10px; border-radius: 8px; transition: 0.2s; }
+    .btn-team.active { background: white !important; color: var(--ptsc-blue-dark) !important; border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+
+    /* Stat Cards */
+    .stat-card { border: none; border-radius: 16px; color: white; transition: 0.3s; cursor: pointer; height: 110px; display: flex; align-items: center; padding: 20px; position: relative; overflow: hidden; }
+    .bg-thu { background: linear-gradient(135deg, #28a745, #1e7e34); }
+    .bg-chi { background: linear-gradient(135deg, #ed1c24, #b31217); }
+    .bg-du { background: linear-gradient(135deg, #004a99, #007bff); }
+    .stat-card.active { outline: 4px solid #333; outline-offset: 2px; transform: translateY(-5px); }
+    .stat-card i { position: absolute; right: 15px; font-size: 40px; opacity: 0.2; }
+
+    /* Filter Bar */
+    .filter-bar { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; }
+
+    /* Content Box */
+    .content-box { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 100%; border: 1px solid #eee; }
+    .chart-wrapper { height: 280px; position: relative; }
+
+    /* Table Styling */
+    .table thead th { background: var(--ptsc-gray); color: var(--ptsc-blue-dark); font-size: 11px; text-transform: uppercase; padding: 15px; border: none; }
+    .img-doc { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
+    .img-doc:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+    /* Footer */
+    .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--ptsc-blue-dark); color: white; padding: 18px 0; z-index: 1000; border-top: 4px solid var(--ptsc-red); }
+    .footer-label { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+
+    /* Loading Overlay */
+    #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; }
+  </style>
+</head>
+<body>
+
+<!-- Màn hình chờ tải dữ liệu -->
+<div id="loading-overlay">
+  <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+  <div class="mt-3 fw-bold text-primary text-uppercase">Đang đồng bộ dữ liệu PTSC M&C...</div>
+</div>
+
+<nav class="navbar navbar-dark sticky-top">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div class="logo-text">PTSC <span>M&C</span></div>
+    <div class="d-flex">
+      <button class="btn btn-team active" id="btn-QLSX" onclick="changeTeam('QLSX')">TỔ QLSX</button>
+      <button class="btn btn-team" id="btn-NORM" onclick="changeTeam('NORM')">TỔ NORM</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <!-- Thẻ thống kê 3 ô -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4" onclick="toggleView('Thu')">
+      <div id="card-thu" class="stat-card bg-thu active">
+        <div>
+            <div class="small fw-bold opacity-75">TỔNG THU</div>
+            <div class="h2 fw-bold m-0" id="top-thu">0 ₫</div>
+        </div>
+        <i class="fas fa-hand-holding-usd"></i>
+      </div>
+    </div>
+    <div class="col-md-4" onclick="toggleView('Chi')">
+      <div id="card-chi" class="stat-card bg-chi">
+        <div>
+            <div class="small fw-bold opacity-75">TỔNG CHI</div>
+            <div class="h2 fw-bold m-0" id="top-chi">0 ₫</div>
+        </div>
+        <i class="fas fa-file-invoice-dollar"></i>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card bg-du">
+        <div>
+            <div class="small fw-bold opacity-75">SỐ DƯ KHẢ DỤNG</div>
+            <div class="h2 fw-bold m-0" id="val-du-top">0 ₫</div>
+        </div>
+        <i class="fas fa-wallet"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bộ lọc -->
+  <div class="filter-bar">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="small fw-bold text-muted mb-1"><i class="fas fa-calendar-alt me-1"></i>Từ ngày</label>
+        <input type="date" id="date-start" class="form-control" onchange="render()">
+      </div>
+      <div class="col-md-4">
+        <label class="small fw-bold text-muted mb-1"><i class="fas fa-calendar-alt me-1"></i>Đến ngày</label>
+        <input type="date" id="date-end" class="form-control" onchange="render()">
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-primary w-100 fw-bold shadow-sm" onclick="fetchData()">
+            <i class="fas fa-sync-alt me-2"></i>CẬP NHẬT DỮ LIỆU
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Biểu đồ -->
+    <div class="col-lg-4">
+      <div class="content-box">
+        <h6 class="fw-bold text-muted mb-4 text-uppercase"><i class="fas fa-chart-pie me-2"></i>Phân loại chi tiết</h6>
+        <div class="chart-wrapper">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bảng dữ liệu -->
+    <div class="col-lg-8">
+      <div class="content-box">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold m-0 text-uppercase" id="table-title">Dữ liệu thu nhập</h6>
+          <span class="badge bg-primary rounded-pill" id="record-count">0 bản ghi</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle table-hover">
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Nội dung</th>
+                <th>Số tiền</th>
+                <th>Phân loại</th>
+                <th>Minh chứng</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <!-- Dữ liệu sẽ đổ vào đây -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Thanh chốt số dưới cùng -->
+<div class="footer-bar">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div class="footer-label" id="bottom-label">TỔNG THU (HIỆN TẠI):</div>
+    <div class="h2 fw-bold m-0" id="bottom-val">0 ₫</div>
+  </div>
+</div>
+
+<script>
+  /**
+   * 1. CẤU HÌNH ĐƯỜNG DẪN GOOGLE SHEETS
+   * Thay link của bạn vào biến SHEET_URL bên dưới (Phải là link định dạng CSV)
+   */
+  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQFwPwX1zLs7icftZ5ZRqwuaon0bsJ0Hg02VxiMa8qGqyn-JJBLzNypOPzObsJEGk_jTVgFM5GzbVTq/pub?output=csv';
+
+  let rawData = { QLSX: [], NORM: [] };
+  let currentTeam = 'QLSX';
+  let currentView = 'Thu';
+  let myChart;
+
+  // Hàm xử lý link Google Drive để hiện ảnh trực tiếp
+  function getDirectDriveLink(url) {
+    if (!url || !url.includes('drive.google.com')) return url;
+    try {
+        // Trích xuất File ID từ link Drive
+        const parts = url.split('/');
+        let fileId = '';
+        if (url.includes('id=')) {
+            fileId = url.split('id=')[1].split('&')[0];
+        } else {
+            fileId = parts[parts.indexOf('d') + 1];
+        }
+        return fileId ? `https://drive.google.com/uc?id=${fileId}` : url;
+    } catch (e) {
+        return url;
+    }
+  }
+
+  // Lấy dữ liệu từ Google Sheets
+  function fetchData() {
+    document.getElementById('loading-overlay').style.display = 'flex';
+    
+    Papa.parse(SHEET_URL, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        rawData = { QLSX: [], NORM: [] };
+        
+        results.data.forEach(row => {
+          if (row.Team && row.Amount) {
+            const item = {
+              date: row.Date,
+              desc: row.Description,
+              amount: parseFloat(row.Amount.replace(/,/g, '')) || 0,
+              type: row.Type, // 'Thu' hoặc 'Chi'
+              cat: row.Category,
+              img: row.Evidence // Cột chứa link Drive
+            };
+            if (row.Team === 'QLSX') rawData.QLSX.push(item);
+            else if (row.Team === 'NORM') rawData.NORM.push(item);
+          }
+        });
+
+        document.getElementById('loading-overlay').style.display = 'none';
+        render();
+      },
+      error: function(err) {
+        alert("Không thể kết nối Google Sheets. Hãy kiểm tra lại link Publish!");
+        document.getElementById('loading-overlay').style.display = 'none';
+      }
+    });
+  }
+
+  function changeTeam(t) {
+    currentTeam = t;
+    document.querySelectorAll('.btn-team').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + t).classList.add('active');
+    render();
+  }
+
+  function toggleView(v) {
+    currentView = v;
+    document.getElementById('card-thu').classList.toggle('active', v === 'Thu');
+    document.getElementById('card-chi').classList.toggle('active', v === 'Chi');
+    document.getElementById('table-title').innerText = "Dữ liệu " + (v === 'Thu' ? 'Thu nhập' : 'Chi phí');
+    document.getElementById('bottom-label').innerText = "Tổng " + (v === 'Thu' ? 'Thu' : 'Chi') + " (Hiện tại):";
+    render();
+  }
+
+  function render() {
+    const start = document.getElementById('date-start').value;
+    const end = document.getElementById('date-end').value;
+
+    let data = [...rawData[currentTeam]];
+
+    // Lọc theo ngày
+    if (start) data = data.filter(d => d.date >= start);
+    if (end) data = data.filter(d => d.date <= end);
+
+    // Tính toán tổng số
+    const income = data.filter(i => i.type === 'Thu').reduce((a, b) => a + b.amount, 0);
+    const expense = data.filter(i => i.type === 'Chi').reduce((a, b) => a + b.amount, 0);
+
+    document.getElementById('top-thu').innerText = income.toLocaleString() + ' ₫';
+    document.getElementById('top-chi').innerText = expense.toLocaleString() + ' ₫';
+    document.getElementById('val-du-top').innerText = (income - expense).toLocaleString() + ' ₫';
+    document.getElementById('bottom-val').innerText = (currentView === 'Thu' ? income : expense).toLocaleString() + ' ₫';
+
+    // Đổ dữ liệu vào bảng
+    const filteredTable = data.filter(i => i.type === currentView);
+    document.getElementById('record-count').innerText = filteredTable.length + ' bản ghi';
+    
+    let html = '';
+    filteredTable.forEach(item => {
+      const imgLink = getDirectDriveLink(item.img);
+      html += `<tr>
+        <td class="small text-muted">${item.date}</td>
+        <td class="fw-bold">${item.desc}</td>
+        <td class="${item.type === 'Thu' ? 'text-success' : 'text-danger'} fw-bold">${item.amount.toLocaleString()}</td>
+        <td><span class="badge bg-light text-dark border">${item.cat || 'Khác'}</span></td>
+        <td>
+          ${item.img ? `<img src="${imgLink}" class="img-doc" onerror="this.src='https://via.placeholder.com/45?text=Img'" onclick="window.open('${item.img}')">` : '<span class="text-muted small">N/A</span>'}
+        </td>
+      </tr>`;
+    });
+    document.getElementById('table-body').innerHTML = html || '<tr><td colspan="5" class="text-center p-5 text-muted">Không tìm thấy dữ liệu phù hợp</td></tr>';
+
+    // Cập nhật biểu đồ (Dựa trên loại hiện tại: Thu hoặc Chi)
+    const chartDataItems = data.filter(i => i.type === currentView);
+    const cats = [...new Set(chartDataItems.map(i => i.cat || 'Khác'))];
+    const vals = cats.map(c => chartDataItems.filter(i => (i.cat || 'Khác') === c).reduce((s, i) => s + i.amount, 0));
+
+    if (myChart) myChart.destroy();
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    myChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: cats,
+        datasets: [{
+          data: vals,
+          backgroundColor: ['#004a99', '#ed1c24', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#fd7e14'],
+          borderWidth: 2,
+          hoverOffset: 10
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 12 } } }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+
+  // Chạy lần đầu
+  window.onload = fetchData;
+</script>
+
+</body>
+</html>
