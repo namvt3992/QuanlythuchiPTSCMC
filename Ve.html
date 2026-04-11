@@ -3,319 +3,603 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PTSC M&C - Financial Dashboard Pro</title>
+  <title>PTSC M&C - Financial Dashboard Premium</title>
   
-  <!-- Thư viện hỗ trợ -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Plugins for Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+  <!-- Plugin hiển thị số liệu trực tiếp trên Line (DataLabels) -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    :root { --ptsc-blue: #004a99; --ptsc-blue-dark: #002d5f; --ptsc-red: #ed1c24; --ptsc-gray: #f8f9fa; }
-    body { background-color: #f1f4f9; font-family: 'Segoe UI', sans-serif; padding-bottom: 110px; }
-    
-    /* Header & Navigation */
-    .navbar { background: var(--ptsc-blue-dark); border-bottom: 4px solid var(--ptsc-red); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-    .logo-text { color: white; font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+    :root { 
+      --ptsc-blue: #004a99; 
+      --ptsc-blue-dark: #002d5f; 
+      --ptsc-red: #ed1c24; 
+      --glass: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.6);
+    }
+
+    /* ===== ANIMATED BACKGROUND PREMIUM (ĐẶC SẮC HƠN) ===== */
+    body { 
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(-45deg, #f0f4f8, #dce7f3, #e8f0fe, #fceceb);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      padding-bottom: 80px;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Các khối sáng chuyển động tự do (Aurora / Lava effect) */
+    .bg-shape {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: -1;
+      opacity: 0.6;
+    }
+    .shape1 { background: #004a99; width: 600px; height: 600px; top: -150px; left: -100px; animation: move1 20s infinite alternate ease-in-out; }
+    .shape2 { background: #ed1c24; width: 500px; height: 500px; bottom: -100px; right: -50px; animation: move2 25s infinite alternate-reverse ease-in-out; }
+    .shape3 { background: #2ecc71; width: 400px; height: 400px; top: 30%; left: 40%; animation: move3 22s infinite alternate ease-in-out; }
+
+    @keyframes move1 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20vw, 15vh) scale(1.2); } }
+    @keyframes move2 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-25vw, -20vh) scale(1.3); } }
+    @keyframes move3 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(15vw, -20vh) scale(0.8); } }
+
+    /* ===== LOGIN SCREEN ===== */
+    #login-screen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at center, #004a99, #001a38);
+      display: flex; justify-content: center; align-items: center; z-index: 10000;
+      transition: opacity 0.5s ease;
+    }
+    .login-box {
+      background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 40px;
+      width: 100%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+
+    /* ===== HEADER ===== */
+    .navbar { 
+      background: rgba(0, 45, 95, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+      border-bottom: 3px solid var(--ptsc-red); padding: 12px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .logo-text { color: white; font-weight: 800; font-size: 24px; letter-spacing: 1px; }
     .logo-text span { color: var(--ptsc-red); }
-    .btn-team { border: 1px solid rgba(255,255,255,0.3); color: white; font-weight: 600; margin-left: 10px; border-radius: 8px; transition: 0.2s; }
-    .btn-team.active { background: white !important; color: var(--ptsc-blue-dark) !important; border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
 
-    /* Stat Cards */
-    .stat-card { border: none; border-radius: 16px; color: white; transition: 0.3s; cursor: pointer; height: 110px; display: flex; align-items: center; padding: 20px; position: relative; overflow: hidden; }
-    .bg-thu { background: linear-gradient(135deg, #28a745, #1e7e34); }
-    .bg-chi { background: linear-gradient(135deg, #ed1c24, #b31217); }
-    .bg-du { background: linear-gradient(135deg, #004a99, #007bff); }
-    .stat-card.active { outline: 4px solid #333; outline-offset: 2px; transform: translateY(-5px); }
-    .stat-card i { position: absolute; right: 15px; font-size: 40px; opacity: 0.2; }
+    /* ===== STAT CARDS ===== */
+    .stat-card { 
+      border: none; border-radius: 20px; color: white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+      cursor: pointer; height: 120px; display: flex; align-items: center; padding: 25px 30px; 
+      position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .stat-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
+    .bg-thu { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+    .bg-chi { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .bg-du { background: linear-gradient(135deg, #3498db, #2980b9); }
+    .stat-card.active { border: 3px solid #333; transform: scale(1.03); }
+    .stat-card i { position: absolute; right: 10px; font-size: 70px; opacity: 0.2; transition: 0.4s; }
+    .stat-card:hover i { transform: scale(1.2) rotate(-10deg); opacity: 0.3; }
 
-    /* Filter Bar */
-    .filter-bar { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; }
+    /* ===== CONTENT BOX (GLASSMORPHISM) ===== */
+    .content-box { 
+      background: var(--glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+      border-radius: 24px; padding: 25px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); 
+      border: 1px solid var(--glass-border); height: 100%; transition: all 0.3s ease;
+    }
 
-    /* Content Box */
-    .content-box { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 100%; border: 1px solid #eee; }
-    .chart-wrapper { height: 280px; position: relative; }
+    /* ===== CHART SECTION ===== */
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+    .btn-group-chart .btn {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; border-radius: 6px; padding: 8px 10px;
+      border: 1px solid #cce0ff; background: white; color: var(--ptsc-blue); transition: all 0.3s ease;
+    }
+    .btn-group-chart .btn:hover { background: #e6f0ff; }
+    .btn-group-chart .btn.active { background: var(--ptsc-blue); color: white; border-color: var(--ptsc-blue); box-shadow: 0 4px 10px rgba(0, 74, 153, 0.3); }
+    .chart-container { position: relative; height: 420px; width: 100%; transition: opacity 0.4s ease; }
 
-    /* Table Styling */
-    .table thead th { background: var(--ptsc-gray); color: var(--ptsc-blue-dark); font-size: 11px; text-transform: uppercase; padding: 15px; border: none; }
-    .img-doc { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
-    .img-doc:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    /* ===== FILTER & TABLE LAYOUT ===== */
+    .sticky-filter { position: sticky; top: 100px; }
+    .filter-item { margin-bottom: 15px; }
+    .filter-item label { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 5px; display: block; }
+    
+    .search-box { position: relative; }
+    .search-box i { position: absolute; top: 50%; left: 15px; transform: translateY(-50%); color: #888; }
+    .search-box input { padding-left: 40px; border-radius: 20px; border: 1px solid #ddd; transition: 0.3s; font-size: 14px;}
+    .search-box input:focus { box-shadow: 0 0 15px rgba(0, 74, 153, 0.2); border-color: var(--ptsc-blue); }
 
-    /* Footer */
-    .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--ptsc-blue-dark); color: white; padding: 18px 0; z-index: 1000; border-top: 4px solid var(--ptsc-red); }
-    .footer-label { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+    .table-scroll-wrapper {
+      max-height: 520px; overflow-y: auto; border-radius: 12px; scrollbar-width: thin; scrollbar-color: #bbb transparent;
+    }
+    .table-scroll-wrapper::-webkit-scrollbar { width: 6px; }
+    .table-scroll-wrapper::-webkit-scrollbar-thumb { background: #bbb; border-radius: 10px; }
+    
+    .table { margin-bottom: 0; }
+    .table thead th { 
+      position: sticky; top: 0; background: rgba(248, 249, 250, 0.95); z-index: 10; 
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; backdrop-filter: blur(5px); padding: 12px;
+    }
+    .table tbody td { padding: 12px; vertical-align: middle; font-size: 14px;}
+    .col-noidung { min-width: 250px; } 
+    .table tbody tr { transition: all 0.2s; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .table tbody tr:hover { background-color: rgba(255, 255, 255, 0.8); transform: scale(1.01); box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 8px;}
+    
+    .img-doc { 
+      width: 45px; height: 45px; border-radius: 8px; cursor: pointer; transition: 0.3s; 
+      object-fit: cover; border: 2px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    .img-doc:hover { transform: scale(3); z-index: 100; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.3); border-color: var(--ptsc-blue); }
 
-    /* Loading Overlay */
-    #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; }
+    .fade-in { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===== FOOTER ===== */
+    .footer-bar { 
+      position: fixed; bottom: 0; left: 0; right: 0; 
+      background: rgba(0, 45, 95, 0.95); backdrop-filter: blur(15px);
+      color: white; padding: 12px 0; z-index: 1000; border-top: 3px solid var(--ptsc-red); 
+    }
+
+    #loading-overlay { 
+      position: fixed; top:0; left:0; width:100%; height:100%; 
+      background: rgba(255,255,255,0.9); backdrop-filter: blur(5px);
+      display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99999; 
+    }
   </style>
 </head>
 <body>
 
-<!-- Màn hình chờ tải dữ liệu -->
-<div id="loading-overlay">
-  <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-  <div class="mt-3 fw-bold text-primary text-uppercase">Đang đồng bộ dữ liệu PTSC M&C...</div>
+<div class="bg-shape shape1"></div>
+<div class="bg-shape shape2"></div>
+<div class="bg-shape shape3"></div>
+
+<!-- MÀN HÌNH ĐĂNG NHẬP -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="mb-4">
+      <h2 class="fw-bold" style="color: #002d5f;">PTSC <span style="color: #ed1c24;">M&C</span></h2>
+      <p class="text-muted small">Hệ thống báo cáo tài chính thông minh</p>
+    </div>
+    <div class="d-flex gap-2 mb-3">
+      <button class="btn btn-outline-primary flex-fill fw-bold" id="btn-login-QLSX" onclick="selectTeamLogin('QLSX')">TỔ QLSX</button>
+      <button class="btn btn-outline-primary flex-fill fw-bold" id="btn-login-NORM" onclick="selectTeamLogin('NORM')">TỔ NORM</button>
+    </div>
+    <input type="password" id="login-password" class="form-control form-control-lg mb-3 shadow-sm" placeholder="Mật khẩu truy cập..." onkeypress="if(event.key === 'Enter') doLogin()">
+    <button class="btn btn-primary w-100 py-2 fw-bold" onclick="doLogin()">ĐĂNG NHẬP <i class="fas fa-arrow-right ms-2"></i></button>
+    <p id="login-error" class="text-danger small mt-2" style="display:none;">Mật khẩu không chính xác!</p>
+  </div>
 </div>
 
-<nav class="navbar navbar-dark sticky-top">
-  <div class="container d-flex justify-content-between align-items-center">
-    <div class="logo-text">PTSC <span>M&C</span></div>
-    <div class="d-flex">
-      <button class="btn btn-team active" id="btn-QLSX" onclick="changeTeam('QLSX')">TỔ QLSX</button>
-      <button class="btn btn-team" id="btn-NORM" onclick="changeTeam('NORM')">TỔ NORM</button>
-    </div>
-  </div>
-</nav>
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+  <p class="mt-3 fw-bold text-primary fs-5">Đang đồng bộ dữ liệu...</p>
+</div>
 
-<div class="container mt-4">
-  <!-- Thẻ thống kê 3 ô -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-4" onclick="toggleView('Thu')">
-      <div id="card-thu" class="stat-card bg-thu active">
-        <div>
-            <div class="small fw-bold opacity-75">TỔNG THU</div>
-            <div class="h2 fw-bold m-0" id="top-thu">0 ₫</div>
-        </div>
-        <i class="fas fa-hand-holding-usd"></i>
-      </div>
-    </div>
-    <div class="col-md-4" onclick="toggleView('Chi')">
-      <div id="card-chi" class="stat-card bg-chi">
-        <div>
-            <div class="small fw-bold opacity-75">TỔNG CHI</div>
-            <div class="h2 fw-bold m-0" id="top-chi">0 ₫</div>
-        </div>
-        <i class="fas fa-file-invoice-dollar"></i>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="stat-card bg-du">
-        <div>
-            <div class="small fw-bold opacity-75">SỐ DƯ KHẢ DỤNG</div>
-            <div class="h2 fw-bold m-0" id="val-du-top">0 ₫</div>
-        </div>
-        <i class="fas fa-wallet"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bộ lọc -->
-  <div class="filter-bar">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-4">
-        <label class="small fw-bold text-muted mb-1"><i class="fas fa-calendar-alt me-1"></i>Từ ngày</label>
-        <input type="date" id="date-start" class="form-control" onchange="render()">
-      </div>
-      <div class="col-md-4">
-        <label class="small fw-bold text-muted mb-1"><i class="fas fa-calendar-alt me-1"></i>Đến ngày</label>
-        <input type="date" id="date-end" class="form-control" onchange="render()">
-      </div>
-      <div class="col-md-4">
-        <button class="btn btn-primary w-100 fw-bold shadow-sm" onclick="fetchData()">
-            <i class="fas fa-sync-alt me-2"></i>CẬP NHẬT DỮ LIỆU
+<!-- MAIN APP -->
+<div id="main-app" style="display:none;" class="fade-in">
+  <nav class="navbar navbar-dark sticky-top">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+      <div class="logo-text">PTSC <span>M&C</span></div>
+      <div class="d-flex align-items-center">
+        <span class="badge bg-light text-dark px-3 py-2 me-3 shadow-sm" id="team-badge-label" style="font-size: 14px;">TỔ QLSX</span>
+        <button class="btn btn-sm btn-danger rounded-circle" style="width: 38px; height: 38px;" onclick="doLogout()" title="Đăng xuất">
+          <i class="fas fa-power-off"></i>
         </button>
       </div>
     </div>
-  </div>
+  </nav>
 
-  <div class="row g-3">
-    <!-- Biểu đồ -->
-    <div class="col-lg-4">
-      <div class="content-box">
-        <h6 class="fw-bold text-muted mb-4 text-uppercase"><i class="fas fa-chart-pie me-2"></i>Phân loại chi tiết</h6>
-        <div class="chart-wrapper">
-          <canvas id="categoryChart"></canvas>
+  <div class="container-fluid px-xl-5 px-3 mt-4">
+    <!-- Stat Cards -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-4" onclick="switchMainType('Thu')">
+        <div id="card-thu" class="stat-card bg-thu active">
+          <div><div class="h6 opacity-75 fw-bold text-uppercase mb-1">Tổng Thu</div><div class="h1 fw-bold m-0" id="val-thu">0 ₫</div></div>
+          <i class="fas fa-arrow-down"></i>
+        </div>
+      </div>
+      <div class="col-md-4" onclick="switchMainType('Chi')">
+        <div id="card-chi" class="stat-card bg-chi">
+          <div><div class="h6 opacity-75 fw-bold text-uppercase mb-1">Tổng Chi</div><div class="h1 fw-bold m-0" id="val-chi">0 ₫</div></div>
+          <i class="fas fa-arrow-up"></i>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card bg-du">
+          <div><div class="h6 opacity-75 fw-bold text-uppercase mb-1">Số Dư Tồn</div><div class="h1 fw-bold m-0" id="val-du">0 ₫</div></div>
+          <i class="fas fa-wallet"></i>
         </div>
       </div>
     </div>
-    
-    <!-- Bảng dữ liệu -->
-    <div class="col-lg-8">
-      <div class="content-box">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold m-0 text-uppercase" id="table-title">Dữ liệu thu nhập</h6>
-          <span class="badge bg-primary rounded-pill" id="record-count">0 bản ghi</span>
+
+    <!-- Main Layout -->
+    <div class="row g-4">
+      <!-- CỘT TRÁI: BIỂU ĐỒ -->
+      <div class="col-xxl-5 col-xl-5 col-lg-12">
+        <div class="content-box">
+          <div class="chart-header">
+            <h5 class="fw-bold m-0 text-uppercase text-secondary" style="font-size: 15px;"><i class="fas fa-chart-line me-2"></i>Phân tích dòng tiền</h5>
+            <div class="btn-group btn-group-chart shadow-sm">
+              <button class="btn" id="btn-chart-cat" onclick="changeChartMode('category')">Phân Loại</button>
+              <button class="btn active" id="btn-chart-month" onclick="changeChartMode('month')">In Month</button>
+              <!-- Nút mới thêm vào đây -->
+              <button class="btn" id="btn-chart-net" onclick="changeChartMode('net')">Số Dư Lũy Kế</button>
+              <button class="btn" id="btn-chart-cum" onclick="changeChartMode('cum')">Cumulative</button>
+            </div>
+          </div>
+          <div class="chart-container fade-in" id="chart-wrapper">
+            <canvas id="mainChart"></canvas>
+          </div>
+          <div id="zoom-hint" class="text-center mt-3 text-muted small">
+            <i class="fas fa-mouse me-1"></i> Cuộn chuột để Zoom chi tiết biểu đồ
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="table align-middle table-hover">
-            <thead>
-              <tr>
-                <th>Ngày</th>
-                <th>Nội dung</th>
-                <th>Số tiền</th>
-                <th>Phân loại</th>
-                <th>Minh chứng</th>
-              </tr>
-            </thead>
-            <tbody id="table-body">
-              <!-- Dữ liệu sẽ đổ vào đây -->
-            </tbody>
-          </table>
+      </div>
+
+      <!-- CỘT PHẢI: BỘ LỌC + BẢNG -->
+      <div class="col-xxl-7 col-xl-7 col-lg-12">
+        <div class="row g-4 h-100">
+          <!-- Bộ lọc -->
+          <div class="col-md-3 col-sm-12">
+            <div class="content-box sticky-filter">
+              <h5 class="fw-bold mb-3 text-uppercase text-secondary" style="font-size: 14px;"><i class="fas fa-filter me-2"></i>Bộ Lọc Thời Gian</h5>
+              <div class="filter-item">
+                <label>Từ ngày</label>
+                <input type="date" id="date-start" class="form-control" onchange="render()">
+              </div>
+              <div class="filter-item">
+                <label>Đến ngày</label>
+                <input type="date" id="date-end" class="form-control" onchange="render()">
+              </div>
+              <button class="btn btn-outline-primary w-100 fw-bold mt-3 py-2 shadow-sm" onclick="fetchData()">
+                <i class="fas fa-sync-alt me-2"></i> Làm mới dữ liệu
+              </button>
+            </div>
+          </div>
+
+          <!-- Bảng dữ liệu -->
+          <div class="col-md-9 col-sm-12">
+            <div class="content-box">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="fw-bold m-0 text-uppercase text-secondary" id="table-title" style="font-size: 15px;"><i class="fas fa-list me-2"></i>Dữ liệu chi tiết</h5>
+                <span class="badge bg-secondary rounded-pill px-3 py-2" id="record-count" style="font-size: 13px;">0 mục</span>
+              </div>
+              <div class="search-box mb-3">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search-text" class="form-control" placeholder="Nhập từ khóa (tên nội dung) để tìm nhanh..." onkeyup="render()">
+              </div>
+
+              <div class="table-scroll-wrapper">
+                <table class="table table-borderless">
+                  <thead>
+                    <tr>
+                      <th style="width: 120px;">Ngày</th>
+                      <th class="col-noidung">Nội dung</th>
+                      <th style="width: 150px;">Số tiền</th>
+                      <!-- Sửa chữ Phiếu thành Minh chứng -->
+                      <th class="text-center" style="width: 100px;">Minh chứng</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-body" class="fade-in"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Thanh chốt số dưới cùng -->
-<div class="footer-bar">
-  <div class="container d-flex justify-content-between align-items-center">
-    <div class="footer-label" id="bottom-label">TỔNG THU (HIỆN TẠI):</div>
-    <div class="h2 fw-bold m-0" id="bottom-val">0 ₫</div>
-  </div>
+  <footer class="footer-bar">
+    <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+      <div class="fw-bold text-uppercase opacity-75" id="footer-label">TỔNG THU THEO BỘ LỌC:</div>
+      <div class="h3 fw-bold m-0" id="footer-val">0 ₫</div>
+    </div>
+  </footer>
 </div>
 
 <script>
-  /**
-   * 1. CẤU HÌNH ĐƯỜNG DẪN GOOGLE SHEETS
-   * Thay link của bạn vào biến SHEET_URL bên dưới (Phải là link định dạng CSV)
-   */
+  // Đăng ký Plugin hiển thị số liệu DataLabels
+  Chart.register(ChartDataLabels);
+
   const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQFwPwX1zLs7icftZ5ZRqwuaon0bsJ0Hg02VxiMa8qGqyn-JJBLzNypOPzObsJEGk_jTVgFM5GzbVTq/pub?output=csv';
+  const PASSWORDS = { QLSX: 'qlsx2025', NORM: 'norm2026' };
 
-  let rawData = { QLSX: [], NORM: [] };
+  let rawData = [];
   let currentTeam = 'QLSX';
-  let currentView = 'Thu';
-  let myChart;
+  let mainType = 'Thu'; 
+  let chartMode = 'month'; 
+  let mainChart;
 
-  // Hàm xử lý link Google Drive để hiện ảnh trực tiếp
-  function getDirectDriveLink(url) {
-    if (!url || !url.includes('drive.google.com')) return url;
-    try {
-        // Trích xuất File ID từ link Drive
-        const parts = url.split('/');
-        let fileId = '';
-        if (url.includes('id=')) {
-            fileId = url.split('id=')[1].split('&')[0];
-        } else {
-            fileId = parts[parts.indexOf('d') + 1];
-        }
-        return fileId ? `https://drive.google.com/uc?id=${fileId}` : url;
-    } catch (e) {
-        return url;
+  let selectedLoginTeam = 'QLSX';
+  function selectTeamLogin(team) {
+    selectedLoginTeam = team;
+    document.getElementById('btn-login-QLSX').className = team === 'QLSX' ? 'btn btn-primary flex-fill fw-bold' : 'btn btn-outline-primary flex-fill fw-bold';
+    document.getElementById('btn-login-NORM').className = team === 'NORM' ? 'btn btn-primary flex-fill fw-bold' : 'btn btn-outline-primary flex-fill fw-bold';
+  }
+
+  function doLogin() {
+    const pw = document.getElementById('login-password').value;
+    if (pw === PASSWORDS[selectedLoginTeam]) {
+      currentTeam = selectedLoginTeam;
+      document.getElementById('login-screen').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('team-badge-label').innerText = 'TỔ ' + currentTeam;
+        fetchData();
+      }, 500);
+    } else {
+      document.getElementById('login-error').style.display = 'block';
     }
   }
 
-  // Lấy dữ liệu từ Google Sheets
+  function doLogout() { location.reload(); }
+
   function fetchData() {
     document.getElementById('loading-overlay').style.display = 'flex';
-    
     Papa.parse(SHEET_URL, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function(results) {
-        rawData = { QLSX: [], NORM: [] };
+      download: true, header: true, skipEmptyLines: true,
+      complete: (results) => {
+        rawData = results.data
+          .filter(r => r.Team === currentTeam)
+          .map(r => ({
+            date: r.Date,
+            desc: r.Description,
+            amount: parseFloat(r.Amount.replace(/,/g, '')) || 0,
+            type: r.Type,
+            cat: r.Category || 'Khác',
+            img: r.Evidence
+          })).sort((a,b) => new Date(a.date) - new Date(b.date));
         
-        results.data.forEach(row => {
-          if (row.Team && row.Amount) {
-            const item = {
-              date: row.Date,
-              desc: row.Description,
-              amount: parseFloat(row.Amount.replace(/,/g, '')) || 0,
-              type: row.Type, // 'Thu' hoặc 'Chi'
-              cat: row.Category,
-              img: row.Evidence // Cột chứa link Drive
-            };
-            if (row.Team === 'QLSX') rawData.QLSX.push(item);
-            else if (row.Team === 'NORM') rawData.NORM.push(item);
-          }
-        });
-
         document.getElementById('loading-overlay').style.display = 'none';
         render();
-      },
-      error: function(err) {
-        alert("Không thể kết nối Google Sheets. Hãy kiểm tra lại link Publish!");
-        document.getElementById('loading-overlay').style.display = 'none';
       }
     });
   }
 
-  function changeTeam(t) {
-    currentTeam = t;
-    document.querySelectorAll('.btn-team').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-' + t).classList.add('active');
+  function switchMainType(type) {
+    mainType = type;
+    document.getElementById('card-thu').classList.toggle('active', type === 'Thu');
+    document.getElementById('card-chi').classList.toggle('active', type === 'Chi');
+    document.getElementById('table-title').innerHTML = `<i class="fas fa-list me-2"></i>Dữ liệu ${type === 'Thu' ? 'Thu' : 'Chi'}`;
+    document.getElementById('footer-label').innerText = `TỔNG ${type === 'Thu' ? 'THU' : 'CHI'} THEO BỘ LỌC:`;
+    
+    const tbody = document.getElementById('table-body');
+    tbody.classList.remove('fade-in');
+    void tbody.offsetWidth;
+    tbody.classList.add('fade-in');
+    
     render();
   }
 
-  function toggleView(v) {
-    currentView = v;
-    document.getElementById('card-thu').classList.toggle('active', v === 'Thu');
-    document.getElementById('card-chi').classList.toggle('active', v === 'Chi');
-    document.getElementById('table-title').innerText = "Dữ liệu " + (v === 'Thu' ? 'Thu nhập' : 'Chi phí');
-    document.getElementById('bottom-label').innerText = "Tổng " + (v === 'Thu' ? 'Thu' : 'Chi') + " (Hiện tại):";
+  function changeChartMode(mode) {
+    chartMode = mode;
+    // Thêm 'net' vào mảng check
+    ['cat', 'month', 'net', 'cum'].forEach(m => document.getElementById('btn-chart-' + m).classList.toggle('active', m === mode));
+    document.getElementById('zoom-hint').style.display = mode === 'category' ? 'none' : 'block';
+    
+    const cWrapper = document.getElementById('chart-wrapper');
+    cWrapper.classList.remove('fade-in');
+    void cWrapper.offsetWidth;
+    cWrapper.classList.add('fade-in');
+
     render();
   }
 
   function render() {
     const start = document.getElementById('date-start').value;
     const end = document.getElementById('date-end').value;
+    const searchText = document.getElementById('search-text').value.toLowerCase(); 
 
-    let data = [...rawData[currentTeam]];
-
-    // Lọc theo ngày
-    if (start) data = data.filter(d => d.date >= start);
-    if (end) data = data.filter(d => d.date <= end);
-
-    // Tính toán tổng số
-    const income = data.filter(i => i.type === 'Thu').reduce((a, b) => a + b.amount, 0);
-    const expense = data.filter(i => i.type === 'Chi').reduce((a, b) => a + b.amount, 0);
-
-    document.getElementById('top-thu').innerText = income.toLocaleString() + ' ₫';
-    document.getElementById('top-chi').innerText = expense.toLocaleString() + ' ₫';
-    document.getElementById('val-du-top').innerText = (income - expense).toLocaleString() + ' ₫';
-    document.getElementById('bottom-val').innerText = (currentView === 'Thu' ? income : expense).toLocaleString() + ' ₫';
-
-    // Đổ dữ liệu vào bảng
-    const filteredTable = data.filter(i => i.type === currentView);
-    document.getElementById('record-count').innerText = filteredTable.length + ' bản ghi';
+    let filtered = rawData;
     
+    if (start) filtered = filtered.filter(d => d.date >= start);
+    if (end) filtered = filtered.filter(d => d.date <= end);
+    
+    if (searchText) {
+      filtered = filtered.filter(d => d.desc.toLowerCase().includes(searchText));
+    }
+
+    let statsData = rawData;
+    if (start) statsData = statsData.filter(d => d.date >= start);
+    if (end) statsData = statsData.filter(d => d.date <= end);
+
+    const totalThu = statsData.filter(d => d.type === 'Thu').reduce((sum, d) => sum + d.amount, 0);
+    const totalChi = statsData.filter(d => d.type === 'Chi').reduce((sum, d) => sum + d.amount, 0);
+    document.getElementById('val-thu').innerText = totalThu.toLocaleString('vi-VN') + ' ₫';
+    document.getElementById('val-chi').innerText = totalChi.toLocaleString('vi-VN') + ' ₫';
+    document.getElementById('val-du').innerText = (totalThu - totalChi).toLocaleString('vi-VN') + ' ₫';
+    
+    const currentViewTotal = filtered.filter(d => d.type === mainType).reduce((sum, d) => sum + d.amount, 0);
+    document.getElementById('footer-val').innerText = currentViewTotal.toLocaleString('vi-VN') + ' ₫';
+
+    const tableData = filtered.filter(d => d.type === mainType);
+    document.getElementById('record-count').innerText = tableData.length + ' mục';
     let html = '';
-    filteredTable.forEach(item => {
-      const imgLink = getDirectDriveLink(item.img);
+    tableData.forEach(d => {
       html += `<tr>
-        <td class="small text-muted">${item.date}</td>
-        <td class="fw-bold">${item.desc}</td>
-        <td class="${item.type === 'Thu' ? 'text-success' : 'text-danger'} fw-bold">${item.amount.toLocaleString()}</td>
-        <td><span class="badge bg-light text-dark border">${item.cat || 'Khác'}</span></td>
-        <td>
-          ${item.img ? `<img src="${imgLink}" class="img-doc" onerror="this.src='https://via.placeholder.com/45?text=Img'" onclick="window.open('${item.img}')">` : '<span class="text-muted small">N/A</span>'}
-        </td>
+        <td class="text-muted fw-bold" style="white-space: nowrap;">${d.date}</td>
+        <td style="color: #2c3e50; font-weight: 600; line-height: 1.5;">${d.desc}</td>
+        <td class="fw-bold fs-6 ${d.type==='Thu'?'text-success':'text-danger'}">${d.amount.toLocaleString('vi-VN')} ₫</td>
+        <td class="text-center">${d.img ? `<img src="${d.img}" class="img-doc" onclick="window.open('${d.img}')" onerror="this.src='https://via.placeholder.com/40?text=?'">` : '<span class="text-muted small">-</span>'}</td>
       </tr>`;
     });
-    document.getElementById('table-body').innerHTML = html || '<tr><td colspan="5" class="text-center p-5 text-muted">Không tìm thấy dữ liệu phù hợp</td></tr>';
+    document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="text-center py-5 text-muted"><i class="fas fa-box-open fs-1 mb-3"></i><br>Không tìm thấy dữ liệu</td></tr>';
 
-    // Cập nhật biểu đồ (Dựa trên loại hiện tại: Thu hoặc Chi)
-    const chartDataItems = data.filter(i => i.type === currentView);
-    const cats = [...new Set(chartDataItems.map(i => i.cat || 'Khác'))];
-    const vals = cats.map(c => chartDataItems.filter(i => (i.cat || 'Khác') === c).reduce((s, i) => s + i.amount, 0));
-
-    if (myChart) myChart.destroy();
-    const ctx = document.getElementById('categoryChart').getContext('2d');
-    myChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: cats,
-        datasets: [{
-          data: vals,
-          backgroundColor: ['#004a99', '#ed1c24', '#ffc107', '#28a745', '#17a2b8', '#6610f2', '#fd7e14'],
-          borderWidth: 2,
-          hoverOffset: 10
-        }]
-      },
-      options: {
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 12 } } }
-        },
-        cutout: '65%'
-      }
-    });
+    updateChart(statsData); 
   }
 
-  // Chạy lần đầu
-  window.onload = fetchData;
+  function updateChart(data) {
+    if (mainChart) mainChart.destroy();
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    let config = {};
+
+    // 1. BIỂU ĐỒ TRÒN
+    if (chartMode === 'category') {
+      const catData = data.filter(d => d.type === mainType);
+      const labels = [...new Set(catData.map(d => d.cat))];
+      const values = labels.map(l => catData.filter(d => d.cat === l).reduce((s, d) => s + d.amount, 0));
+
+      config = {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{ 
+            data: values, 
+            backgroundColor: ['#004a99', '#ed1c24', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e'],
+            borderWidth: 3, borderColor: '#fff'
+          }]
+        },
+        options: { 
+          maintainAspectRatio: false, cutout: '65%', layout: { padding: 20 },
+          plugins: { 
+            datalabels: { display: false }, // Tắt số trên biểu đồ tròn
+            legend: { position: 'right', labels: { usePointStyle: true, padding: 20, font: {size: 13} } },
+            tooltip: { callbacks: { label: function(c) { return ' ' + c.label + ': ' + c.parsed.toLocaleString('vi-VN') + ' ₫'; } } }
+          },
+          animation: { animateScale: true, animateRotate: true }
+        }
+      };
+    } 
+    // 2. BIỂU ĐỒ SỐ DƯ (LŨY KẾ THEO TỪNG THÁNG) - Đường màu cam có số liệu
+    else if (chartMode === 'net') {
+      const monthlyData = {};
+      
+      // Gom nhóm tổng Thu - Chi theo từng tháng (YYYY-MM)
+      data.forEach(d => {
+        const month = d.date.substring(0, 7); 
+        if (!monthlyData[month]) monthlyData[month] = { thu: 0, chi: 0 };
+        if (d.type === 'Thu') monthlyData[month].thu += d.amount;
+        if (d.type === 'Chi') monthlyData[month].chi += d.amount;
+      });
+
+      const labels = Object.keys(monthlyData).sort();
+      const displayLabels = labels.map(m => m.split('-')[1] + '/' + m.split('-')[0]); // MM/YYYY
+      
+      let runningBalance = 0;
+      // Tính LŨY KẾ SỐ DƯ (Tính dồn qua các tháng)
+      const netValues = labels.map(m => {
+        const netMonth = monthlyData[m].thu - monthlyData[m].chi;
+        runningBalance += netMonth; // Cộng dồn
+        return runningBalance;
+      });
+
+      config = {
+        type: 'line',
+        data: {
+          labels: displayLabels,
+          datasets: [{
+            label: 'Số dư quỹ (Lũy kế)',
+            data: netValues,
+            borderColor: '#f39c12',
+            backgroundColor: '#fff',
+            borderWidth: 4,
+            pointRadius: 6,
+            pointBackgroundColor: '#f39c12',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            tension: 0.4,
+            fill: false
+          }]
+        },
+        options: {
+          maintainAspectRatio: false, layout: { padding: { top: 40, bottom: 20 } },
+          plugins: {
+            // Cấu hình hiện số tiền trực tiếp trên đường biểu đồ
+            datalabels: {
+              display: true,
+              align: (context) => context.dataset.data[context.dataIndex] >= 0 ? 'end' : 'start',
+              anchor: (context) => context.dataset.data[context.dataIndex] >= 0 ? 'end' : 'start',
+              offset: 4,
+              color: (context) => context.dataset.data[context.dataIndex] >= 0 ? '#27ae60' : '#c0392b',
+              font: { weight: 'bold', size: 12 },
+              formatter: (value) => {
+                if (value === 0) return '0';
+                return (value / 1000000).toLocaleString('vi-VN', {maximumFractionDigits: 1}) + 'M';
+              }
+            },
+            tooltip: { callbacks: { label: function(c) { return ' Số dư: ' + c.parsed.y.toLocaleString('vi-VN') + ' ₫'; } } },
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: {size: 12, weight: 'bold'}, color: '#555' } },
+            y: { 
+              grid: { color: (context) => context.tick.value === 0 ? '#333' : 'rgba(0,0,0,0.05)', lineWidth: (context) => context.tick.value === 0 ? 2 : 1 },
+              ticks: { display: false } // Ẩn trục Y vì số đã hiện trên Line
+            }
+          }
+        }
+      };
+    }
+    // 3. BIỂU ĐỒ IN MONTH & CUMULATIVE CHUNG (Thu / Chi)
+    else {
+      const dates = [...new Set(data.map(d => d.date))].sort();
+      let thuValues = [], chiValues = [];
+      let runningThu = 0, runningChi = 0;
+
+      dates.forEach(date => {
+        const dayThu = data.filter(d => d.date === date && d.type === 'Thu').reduce((s,d) => s + d.amount, 0);
+        const dayChi = data.filter(d => d.date === date && d.type === 'Chi').reduce((s,d) => s + d.amount, 0);
+        
+        if (chartMode === 'month') {
+          thuValues.push(dayThu); chiValues.push(dayChi);
+        } else { 
+          runningThu += dayThu; runningChi += dayChi;
+          thuValues.push(runningThu); chiValues.push(runningChi);
+        }
+      });
+
+      let gradientThu = ctx.createLinearGradient(0, 0, 0, 400);
+      gradientThu.addColorStop(0, 'rgba(46, 204, 113, 0.4)');
+      gradientThu.addColorStop(1, 'rgba(46, 204, 113, 0.0)');
+
+      let gradientChi = ctx.createLinearGradient(0, 0, 0, 400);
+      gradientChi.addColorStop(0, 'rgba(231, 76, 60, 0.4)');
+      gradientChi.addColorStop(1, 'rgba(231, 76, 60, 0.0)');
+
+      config = {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            { label: 'Tổng Thu', data: thuValues, borderColor: '#2ecc71', backgroundColor: gradientThu, fill: true, tension: 0.4, borderWidth: 3, pointRadius: 4, pointHoverRadius: 7 },
+            { label: 'Tổng Chi', data: chiValues, borderColor: '#e74c3c', backgroundColor: gradientChi, fill: true, tension: 0.4, borderWidth: 3, pointRadius: 4, pointHoverRadius: 7 }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false, layout: { padding: {top: 20} },
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            datalabels: { display: false }, // Tắt số trên line cho biểu đồ này
+            tooltip: { backgroundColor: 'rgba(0,45,95,0.9)', titleFont: { size: 14 }, bodyFont: { size: 14, weight: 'bold' }, padding: 12,
+              callbacks: { label: function(c) { return ' ' + c.dataset.label + ': ' + c.parsed.y.toLocaleString('vi-VN') + ' ₫'; } }
+            },
+            zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: {size: 12} } },
+            y: { beginAtZero: true, border: { dash: [5, 5] }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: {size: 12}, callback: v => (v >= 1000000 ? (v / 1000000).toLocaleString() + 'M' : v.toLocaleString()) } }
+          }
+        }
+      };
+    }
+    mainChart = new Chart(ctx, config);
+  }
 </script>
 
 </body>
